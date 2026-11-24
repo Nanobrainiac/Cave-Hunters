@@ -13,6 +13,6 @@ npm test
 npm run build
 ```
 
-Phase 6 adds trap effects, equipment activation, defensive reactions, forced movement and dropped objects. Victory and saves remain Phase 7. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
+Phase 6 adds trap effects, equipment activation, defensive reactions, forced movement and dropped objects. Possession immediately lets the player to the left move the affected player up to four legal linked steps (v0.6.2). Victory and saves remain Phase 7. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
 
 No backend, accounts, or networking. GitHub is source storage only. On Windows, download the repository ZIP, extract it, and double-click Launch-Cave-Hunters.cmd. The launcher installs missing local dependencies and starts the loopback-only game server.
