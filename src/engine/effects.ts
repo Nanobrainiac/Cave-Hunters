@@ -1,6 +1,6 @@
 import type {GameState,Player} from './game';
 import {eligibleSpots,type Token} from './tokens';
-export type Effect={kind:'trap';player:number;token:Token;previous:string;normal:boolean}|{kind:'drop';player:number;itemKind:'item'|'relic';normal:boolean}|{kind:'attack';player:number;attacker:number;item:Token;stolen?:string}|{kind:'blade';player:number;attacker:number;remaining:number};
+export type Effect={kind:'trap';player:number;token:Token;previous:string;normal:boolean}|{kind:'drop';player:number;itemKind:'item'|'relic';normal:boolean}|{kind:'attack';player:number;attacker:number;item:Token;stolen?:string}|{kind:'blade'|'possession';player:number;attacker:number;remaining:number};
 export type Notice={player:number;token:Token;result:string};
 export function neighbors(s:GameState,spot:string):string[]{return s.board.links.flatMap(([a,b])=>a===spot?[b]:b===spot?[a]:[]);}
 export function freeNeighbors(s:GameState,player:number):string[]{return neighbors(s,s.players[player]!.spot).filter(id=>!s.players.some(p=>p.spot===id));}
