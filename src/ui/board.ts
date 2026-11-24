@@ -16,7 +16,7 @@ export function renderBoard(svg:SVGSVGElement,board:Board,positions:readonly str
 // Pick the nearest spot in screen pixels, independent of camera zoom.
 export function nearestSpot(svg:SVGSVGElement,x:number,y:number):SVGGElement|null{
  let best:SVGGElement|null=null,bestDistance=Infinity;
- for(const spot of svg.querySelectorAll<SVGGElement>('[data-node]')){
+ for(const spot of Array.from(svg.querySelectorAll<SVGGElement>('[data-node]'))){
   const circle=spot.querySelector<SVGCircleElement>('.hit');const matrix=circle?.getScreenCTM();if(!circle||!matrix)continue;
   const point=new DOMPoint(circle.cx.baseVal.value,circle.cy.baseVal.value).matrixTransform(matrix);
   const distance=Math.hypot(x-point.x,y-point.y);
