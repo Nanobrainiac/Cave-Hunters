@@ -68,15 +68,16 @@ export function resolveTrap(s:GameState,defend:boolean):GameState{
  const e=s.effect;if(e?.kind!=='trap')throw Error('No trap reaction');
  const charm=s.players[e.player]!.inventory.find(t=>t.name==='Protective Charm');
  if(defend){if(!charm)throw Error('No charm');return finish(notice(consume(s,e.player,charm),e.player,e.token,'Canceled by Protective Charm.'),e.normal);}
- let next=notice({...s,effect:null},e.player,e.token,'Trap triggered.');
+ let next:GameState={...s,effect:null};
  switch(e.token.name){
- case 'Snare':next=updatePlayer(next,e.player,p=>({...p,skip:true}));break;
- case 'Possession':next=updatePlayer(next,e.player,p=>({...p,possessed:true}));break;
- case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(next,e.player,e.previous,false);break;
+ case 'Snare':next=notice(updatePlayer(next,e.player,p=>({...p,skip:true})),e.player,e.token,'Your next turn will be skipped.');break;
+ case 'Possession':next=notice(updatePlayer(next,e.player,p=>({...p,possessed:true})),e.player,e.token,s.players[(e.player+1)%s.players.length]!.name+' will choose your next move.');break;
+ case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(notice(next,e.player,e.token,'Moved back to the previous spot.'),e.player,e.previous,false);next=notice(next,e.player,e.token,'No effect: previous spot is blocked.');break;
  case 'Grasping Hands':case 'Relic Curse':{
  const itemKind=e.token.name==='Relic Curse'?'relic':'item';
- if(next.players[e.player]!.inventory.some(t=>t.kind===itemKind)&&dropTargets(next,e.player).length)return {...next,effect:{kind:'drop',player:e.player,itemKind,normal:e.normal}};
- break;}
+ if(!next.players[e.player]!.inventory.some(t=>t.kind===itemKind)){next=notice(next,e.player,e.token,'No effect: you carry no '+(itemKind==='relic'?'relics':'equipment')+'.');break;}
+ if(!dropTargets(next,e.player).length){next=notice(next,e.player,e.token,'No effect: no legal drop destination.');break;}
+ return {...notice(next,e.player,e.token,'Choose a carried '+(itemKind==='relic'?'relic':'equipment item')+' and a highlighted drop destination.'),effect:{kind:'drop',player:e.player,itemKind,normal:e.normal}};}
  }
  return finish(next,e.normal);
 }
@@ -84,7 +85,7 @@ export function dropObject(s:GameState,itemId:string,spot:string):GameState{
  const e=s.effect;if(e?.kind!=='drop'||!dropTargets(s,e.player).includes(spot))throw Error('Illegal drop');
  const item=s.players[e.player]!.inventory.find(t=>t.id===itemId&&t.kind===e.itemKind);if(!item)throw Error('Invalid object');
  const next=updatePlayer({...s,tokens:[...s.tokens,{spot,token:item,revealed:true}]},e.player,p=>({...p,inventory:p.inventory.filter(t=>t.id!==itemId)}));
- return finish(next,e.normal);
+ return finish(notice(next,e.player,item,'Dropped on the board; can be recovered.'),e.normal);
 }
 export function usableItems(s:GameState):Token[]{
  if(s.pending||s.seedCount||s.effect||s.skipped)return [];
