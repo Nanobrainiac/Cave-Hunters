@@ -15,4 +15,4 @@ npm run build
 
 Phase 1 is the project foundation, not a playable match. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
 
-No backend, accounts, or networking. GitHub Pages is the intended deployment target.
+No backend, accounts, or networking. GitHub is source storage only. On Windows, download the repository ZIP, extract it, and double-click Launch-Cave-Hunters.cmd. The launcher installs missing local dependencies and starts the loopback-only game server.
