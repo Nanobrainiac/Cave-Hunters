@@ -3,12 +3,12 @@ import { newSupply, rollTokenDie, eligibleSpots, type Token, type BoardToken } f
 import { RULES } from '../data/config';
 import { type RoomTemplate } from '../data/rooms';
 import { initialBoard, ROOM_DECK, shuffle, rotations, addRoom, openCell, expansionEnded, type Board } from './exploration';
-export type Player = { id:number; name:string; spot:string; inventory:readonly Token[]; skip:boolean; possessed:boolean };
-export type GameState = { players:readonly Player[]; active:number; turn:number; round:number; moved:boolean; first:number; board:Board; deck:readonly RoomTemplate[]; pending:RoomTemplate|null; discarded:number; expansionComplete:boolean; supply:readonly Token[]; tokens:readonly BoardToken[]; spent:readonly Token[]; seedCount:number; roll:number|null; encounter:Token|null; effect:Effect|null; notices:readonly Notice[]; skipped:boolean; controller:number };
+export type Player = { id:number; name:string; spot:string; inventory:readonly Token[]; skip:boolean };
+export type GameState = { players:readonly Player[]; active:number; turn:number; round:number; moved:boolean; first:number; board:Board; deck:readonly RoomTemplate[]; pending:RoomTemplate|null; discarded:number; expansionComplete:boolean; supply:readonly Token[]; tokens:readonly BoardToken[]; spent:readonly Token[]; seedCount:number; roll:number|null; encounter:Token|null; effect:Effect|null; notices:readonly Notice[]; skipped:boolean };
 export function newGame(names:readonly string[],first=0,random=Math.random):GameState {
  if(names.length<RULES.minPlayers||names.length>RULES.maxPlayers||!Number.isInteger(first)||first<0||first>=names.length)throw new Error('Invalid setup');
  const board=initialBoard();
- return {players:names.map((name,i)=>({id:i,name:name.trim()||'Player '+(i+1),spot:board.rooms[0]!.template.starts[i]!,inventory:[],skip:false,possessed:false})),active:first,first,turn:1,round:1,moved:false,board,deck:shuffle(ROOM_DECK,random),pending:null,discarded:0,expansionComplete:false,supply:newSupply(random),tokens:[],spent:[],seedCount:0,roll:null,encounter:null,effect:null,notices:[],skipped:false,controller:first};
+ return {players:names.map((name,i)=>({id:i,name:name.trim()||'Player '+(i+1),spot:board.rooms[0]!.template.starts[i]!,inventory:[],skip:false})),active:first,first,turn:1,round:1,moved:false,board,deck:shuffle(ROOM_DECK,random),pending:null,discarded:0,expansionComplete:false,supply:newSupply(random),tokens:[],spent:[],seedCount:0,roll:null,encounter:null,effect:null,notices:[],skipped:false};
 }
 export function legalMoves(state:GameState):string[]{
  if(state.moved||state.pending||state.seedCount||state.effect||state.skipped)return [];
@@ -46,7 +46,7 @@ export function endTurn(state:GameState):GameState {
  if(!state.skipped&&!state.moved&&legalMoves(state).length)throw new Error('Move required');
  const active=(state.active+1)%state.players.length;
  const p=state.players[active]!,skipped=p.skip;
- const next=updatePlayer({...state,active,turn:state.turn+1,round:state.round+(active===state.first?1:0),moved:false,roll:null,encounter:null,notices:[],skipped,controller:!skipped&&p.possessed?(active+1)%state.players.length:active},active,q=>({...q,skip:false,possessed:skipped?q.possessed:false}));
+ const next=updatePlayer({...state,active,turn:state.turn+1,round:state.round+(active===state.first?1:0),moved:false,roll:null,encounter:null,notices:[],skipped},active,q=>({...q,skip:false}));
  return scheduleSeeds(next,next.expansionComplete?1:0);
 }
 
@@ -71,7 +71,11 @@ export function resolveTrap(s:GameState,defend:boolean):GameState{
  let next:GameState={...s,effect:null};
  switch(e.token.name){
  case 'Snare':next=notice(updatePlayer(next,e.player,p=>({...p,skip:true})),e.player,e.token,'Your next turn will be skipped.');break;
- case 'Possession':next=notice(updatePlayer(next,e.player,p=>({...p,possessed:true})),e.player,e.token,s.players[(e.player+1)%s.players.length]!.name+' will choose your next move.');break;
+ case 'Possession':{
+ const controller=(e.player+1)%s.players.length;
+ if(!freeNeighbors(next,e.player).length){next=notice(next,e.player,e.token,'No effect: all adjacent spots are occupied.');break;}
+ return {...notice(next,e.player,e.token,s.players[controller]!.name+' now moves you up to four linked spots. Hand over the mouse.'),effect:{kind:'possession',player:e.player,attacker:controller,remaining:4}};
+ }
  case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(notice(next,e.player,e.token,'Moved back to the previous spot.'),e.player,e.previous,false);next=notice(next,e.player,e.token,'No effect: previous spot is blocked.');break;
  case 'Grasping Hands':case 'Relic Curse':{
  const itemKind=e.token.name==='Relic Curse'?'relic':'item';
@@ -110,9 +114,9 @@ export function resolveAttack(s:GameState,defend:boolean):GameState{
  return notice(next,e.attacker,stolen,'Stolen from '+s.players[e.player]!.name+'.');
 }
 export function bladeStep(s:GameState,target:string):GameState{
- const e=s.effect;if(e?.kind!=='blade'||!freeNeighbors(s,e.player).includes(target))throw Error('Invalid forced movement');
+ const e=s.effect;if((e?.kind!=='blade'&&e?.kind!=='possession')||!freeNeighbors(s,e.player).includes(target))throw Error('Invalid forced movement');
  const next=step({...s,effect:null,notices:[]},e.player,target,false);
  if(next.effect||next.notices.some(n=>n.token.kind==='trap')||e.remaining<=1||!freeNeighbors(next,e.player).length)return next;
  return {...next,effect:{...e,remaining:e.remaining-1}};
 }
-export function finishBlade(s:GameState):GameState{if(s.effect?.kind!=='blade'||s.effect.remaining===4)throw Error('Move at least once');return {...s,effect:null};}
+export function finishBlade(s:GameState):GameState{if((s.effect?.kind!=='blade'&&s.effect?.kind!=='possession')||s.effect.remaining===4)throw Error('Move at least once');return {...s,effect:null};}
