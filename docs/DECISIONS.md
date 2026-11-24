@@ -7,3 +7,5 @@ Adopted prototype defaults from agreed direction, subject to playtest: public eq
 Still open: exact room templates and Exit layout; precise item timing and skip-turn precedence; forced-movement victory; permanent blocking; reachability definition and multi-edge placement conflicts. Do not silently encode unresolved rules as final.
 
 Phase 2 prototype: Exit uses a 300×300 square, six starts on a ring, central winning spot, four midpoint edge ports, 11 nodes and 14 links. Layout remains subject to playtesting. Player count selector is a tabletop preview, not match setup.
+
+Phase 4 prototype: 30 room cards use midpoint edge ports and sparse/dense graph variants. Adjacent aligned ports are distinct linked nodes, visually inset to allow clicking each; unmatched neighboring edges are closed. Reachability ignores temporary player blocking because all placed room graphs connect to the existing cave. All current cards can rotate to fit any free edge; discard handling exists for future incompatible templates. Exact room geometry is provisional.
