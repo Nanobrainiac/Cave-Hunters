@@ -1,1 +1,1 @@
-export const RULES = { minPlayers: 2, maxPlayers: 6, rooms: { corridors: 10, turns: 8, openAreas: 8, deadEnds: 4 }, tokens: { traps: 30, items: 20, relics: 4 }, die: [0, 0, 1, 1, 2, 2], relicsToWin: 2 } as const;
+export const RULES = { minPlayers: 2, maxPlayers: 6, rooms: { corridors: 10, turns: 8, openAreas: 8, deadEnds: 4 }, tokens: { traps: 30, items: 20, relics: 4 }, die: [1, 2], relicsToWin: 2 } as const;
