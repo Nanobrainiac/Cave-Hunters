@@ -1,4 +1,4 @@
-import { type Effect,type Notice,freeNeighbors,updatePlayer,consume,dropTargets,lanternTargets,rivals } from './effects';
+import { type Effect,type Notice,freeNeighbors,updatePlayer,consume,dropTargets,lanternTargets,rivals,possessionPaths } from './effects';
 import { newSupply, rollTokenDie, eligibleSpots, type Token, type BoardToken } from './tokens';
 import { RULES } from '../data/config';
 import { type RoomTemplate } from '../data/rooms';
@@ -74,7 +74,7 @@ export function resolveTrap(s:GameState,defend:boolean):GameState{
  case 'Possession':{
  const controller=(e.player+1)%s.players.length;
  if(!freeNeighbors(next,e.player).length){next=notice(next,e.player,e.token,'No effect: all adjacent spots are occupied.');break;}
- return {...notice(next,e.player,e.token,s.players[controller]!.name+' now moves you up to four linked spots. Hand over the mouse.'),effect:{kind:'possession',player:e.player,attacker:controller,remaining:4}};
+ return {...notice(next,e.player,e.token,s.players[controller]!.name+' now chooses one highlighted destination up to four linked spots away. Hand over the mouse.'),effect:{kind:'possession',player:e.player,attacker:controller,remaining:4}};
  }
  case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(notice(next,e.player,e.token,'Moved back to the previous spot.'),e.player,e.previous,false);next=notice(next,e.player,e.token,'No effect: previous spot is blocked.');break;
  case 'Grasping Hands':case 'Relic Curse':{
@@ -114,9 +114,16 @@ export function resolveAttack(s:GameState,defend:boolean):GameState{
  return notice(next,e.attacker,stolen,'Stolen from '+s.players[e.player]!.name+'.');
 }
 export function bladeStep(s:GameState,target:string):GameState{
- const e=s.effect;if((e?.kind!=='blade'&&e?.kind!=='possession')||!freeNeighbors(s,e.player).includes(target))throw Error('Invalid forced movement');
+ const e=s.effect;if(e?.kind!=='blade'||!freeNeighbors(s,e.player).includes(target))throw Error('Invalid forced movement');
  const next=step({...s,effect:null,notices:[]},e.player,target,false);
  if(next.effect||next.notices.some(n=>n.token.kind==='trap')||e.remaining<=1||!freeNeighbors(next,e.player).length)return next;
  return {...next,effect:{...e,remaining:e.remaining-1}};
 }
-export function finishBlade(s:GameState):GameState{if((s.effect?.kind!=='blade'&&s.effect?.kind!=='possession')||s.effect.remaining===4)throw Error('Move at least once');return {...s,effect:null};}
+export function finishBlade(s:GameState):GameState{if(s.effect?.kind!=='blade'||s.effect.remaining===4)throw Error('Move at least once');return {...s,effect:null};}
+
+export function choosePossessionDestination(s:GameState,target:string):GameState{
+ const e=s.effect,path=possessionPaths(s).get(target);if(e?.kind!=='possession'||!path)throw Error('Invalid Possession destination');
+ let next:GameState={...s,effect:null,notices:[]};
+ for(const spot of path){if(!freeNeighbors(next,e.player).includes(spot))break;const before=next.notices.length;next=step(next,e.player,spot,false);if(next.effect||next.notices.slice(before).some(n=>n.token.kind==='trap'))break;}
+ return next;
+}
