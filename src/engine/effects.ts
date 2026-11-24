@@ -15,3 +15,11 @@ export function dropTargets(s:GameState,player:number):string[]{
 export function sameRoom(s:GameState,a:number,b:number):boolean{return s.board.nodes.find(n=>n.id===s.players[a]!.spot)?.roomId===s.board.nodes.find(n=>n.id===s.players[b]!.spot)?.roomId;}
 export function lanternTargets(s:GameState):string[]{const p=s.players[s.active]!,room=s.board.nodes.find(n=>n.id===p.spot)?.roomId;return s.tokens.filter(t=>!t.revealed&&(neighbors(s,p.spot).includes(t.spot)||s.board.nodes.find(n=>n.id===t.spot)?.roomId===room)).map(t=>t.spot);}
 export function rivals(s:GameState,item:Token):number[]{return s.players.filter(p=>p.id!==s.active&&sameRoom(s,s.active,p.id)&&(item.name==='Rusty Blade'?freeNeighbors(s,p.id).length>0:p.inventory.length>0)).map(p=>p.id);}
+
+// Shortest paths in stable board-link order; never inspect hidden token identities.
+export function possessionPaths(s:GameState):Map<string,string[]>{
+ const e=s.effect,paths=new Map<string,string[]>();if(e?.kind!=='possession')return paths;
+ const start=s.players[e.player]!.spot,blocked=new Set(s.players.filter(p=>p.id!==e.player).map(p=>p.spot)),seen=new Set([start]),queue=[{spot:start,path:[] as string[]}];
+ for(let i=0;i<queue.length;i++){const current=queue[i]!;if(current.path.length>=e.remaining)continue;for(const n of neighbors(s,current.spot)){if(blocked.has(n)||seen.has(n))continue;seen.add(n);const path=[...current.path,n];paths.set(n,path);queue.push({spot:n,path});}}
+ return paths;
+}
