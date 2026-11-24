@@ -12,3 +12,16 @@ export function renderBoard(svg:SVGSVGElement,board:Board,positions:readonly str
  let ghost='';if(preview){const r=preview;const byId=new Map(r.template.nodes.map(n=>[n.id,n]));ghost=`<g pointer-events="none" transform="translate(${r.x*300} ${r.y*300})"><rect width="300" height="300" rx="5" class="ghost"/><g transform="rotate(${r.rotation*90} 150 150)">${r.template.links.map(([a,b])=>{const p=byId.get(a)!,q=byId.get(b)!;return `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" class="path"/>`;}).join('')}${r.template.nodes.map(n=>`<circle cx="${n.x}" cy="${n.y}" r="8" fill="${n.kind==='connection'?'#d4b474':'#d1ddda'}"/>`).join('')}</g></g>`;}
  svg.innerHTML=`<defs><pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse"><path d="M30 0H0V30" fill="none" stroke="#26383d" stroke-width=".65"/></pattern></defs><rect x="-100000" y="-100000" width="200000" height="200000" fill="url(#grid)"/>${tiles}${ghost}${links}${nodes}${markers}${players}`;
 }
+
+// Pick the nearest spot in screen pixels, independent of camera zoom.
+export function nearestSpot(svg:SVGSVGElement,x:number,y:number):SVGGElement|null{
+ let best:SVGGElement|null=null,bestDistance=Infinity;
+ for(const spot of svg.querySelectorAll<SVGGElement>('[data-node]')){
+  const circle=spot.querySelector<SVGCircleElement>('.hit');const matrix=circle?.getScreenCTM();if(!circle||!matrix)continue;
+  const point=new DOMPoint(circle.cx.baseVal.value,circle.cy.baseVal.value).matrixTransform(matrix);
+  const distance=Math.hypot(x-point.x,y-point.y);
+  const radius=Math.max(16,circle.r.baseVal.value*Math.hypot(matrix.a,matrix.b));
+  if(distance<=radius&&distance<bestDistance){best=spot;bestDistance=distance;}
+ }
+ return best;
+}
