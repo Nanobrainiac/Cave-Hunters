@@ -21,7 +21,7 @@ function discover(state:GameState,spot:string):GameState{
  const [card,...deck]=state.deck; if(!card)return state;
  if(!rotations(state.board,spot,card).length){
   const next={...state,deck,discarded:state.discarded+1,expansionComplete:expansionEnded(state.board,deck)};
-  return endTurn(next);
+  return {...endTurn(next),notices:next.notices};
  }
  return {...state,deck,pending:card};
 }
@@ -72,7 +72,7 @@ export function resolveTrap(s:GameState,defend:boolean):GameState{
  switch(e.token.name){
  case 'Snare':next=updatePlayer(next,e.player,p=>({...p,skip:true}));break;
  case 'Possession':next=updatePlayer(next,e.player,p=>({...p,possessed:true}));break;
- case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(next,e.player,e.previous,e.normal);break;
+ case 'Cave-In':if(freeNeighbors(next,e.player).includes(e.previous))return step(next,e.player,e.previous,false);break;
  case 'Grasping Hands':case 'Relic Curse':{
  const itemKind=e.token.name==='Relic Curse'?'relic':'item';
  if(next.players[e.player]!.inventory.some(t=>t.kind===itemKind)&&dropTargets(next,e.player).length)return {...next,effect:{kind:'drop',player:e.player,itemKind,normal:e.normal}};
