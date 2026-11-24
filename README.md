@@ -13,6 +13,6 @@ npm test
 npm run build
 ```
 
-Phase 4 adds a shuffled room deck, rotation and placement, expanding map and cross-room movement. Tokens are not yet implemented. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
+Phase 5 adds a shuffled hidden token supply, token-count die, placement and encounters, equipment inventory and relic collection. Trap effects and equipment activation arrive in Phase 6. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
 
 No backend, accounts, or networking. GitHub is source storage only. On Windows, download the repository ZIP, extract it, and double-click Launch-Cave-Hunters.cmd. The launcher installs missing local dependencies and starts the loopback-only game server.
