@@ -11,3 +11,6 @@
 #effects button{display:block;width:100%;margin:5px 0;font-size:12px}#effects p{color:#e4c98d}.token-marker.relic{fill:#65522c;stroke:#f4cb72}.token-marker.item{fill:#30456a;stroke:#91b8ff}.token-marker.trap{fill:#653d3a;stroke:#f18a79}
 
 #board.near-spot{cursor:pointer}#board:active{cursor:grabbing}.spot.near-pointer .hit{stroke:#fff;stroke-width:2;fill:#ffffff18;vector-effect:non-scaling-stroke}
+
+/* Highlight effect targets (drops, Lantern and forced movement), not automatic token spawns. */
+.effect-target .hit{fill:#d4b47433;stroke:#d4b474;stroke-width:2;stroke-dasharray:3 2}.header-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}#resume{margin-top:8px}#save-message,#save-status{font-size:12px;color:#9bc8b8}#victory{background:#203b32;border:1px solid #94d6b4;border-radius:8px;padding:14px;margin:12px 0}#winner-name{color:#b2edc9;font-size:22px;overflow-wrap:anywhere}#winner-detail{margin-bottom:0}
