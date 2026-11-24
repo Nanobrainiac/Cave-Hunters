@@ -1,6 +1,6 @@
 import {describe,it,expect} from 'vitest';
-import {newGame,move,endTurn,resolveTrap,useItem,resolveAttack,bladeStep,finishBlade,dropObject,legalMoves} from '../src/engine/game';
-import {dropTargets} from '../src/engine/effects';
+import {newGame,move,endTurn,resolveTrap,useItem,resolveAttack,bladeStep,choosePossessionDestination,dropObject,legalMoves} from '../src/engine/game';
+import {dropTargets,possessionPaths} from '../src/engine/effects';
 import {TOKEN_POOL} from '../src/engine/tokens';
 const token=(name:string)=>TOKEN_POOL.find(t=>t.name===name)!;
 function setup(a:string[]=[],b:string[]=[],trap?:string){
@@ -9,8 +9,9 @@ function setup(a:string[]=[],b:string[]=[],trap?:string){
 }
 describe('effects',()=>{
  it('snare skips the next turn',()=>{let s=move(setup([],[],'Snare'),'s3');expect(s.players[0]?.skip).toBe(true);s=endTurn(s);s=endTurn(move(s,'s4'));expect(s.skipped).toBe(true);expect(legalMoves(s)).toEqual([]);});
- it('possession immediately grants the left player up to four forced steps',()=>{let s=move(setup([],[],'Possession'),'s3');expect(s.effect).toEqual({kind:'possession',player:0,attacker:1,remaining:4});expect(()=>endTurn(s)).toThrow();expect(()=>finishBlade(s)).toThrow();expect(()=>bladeStep(s,'s2')).toThrow();for(const spot of ['s1','n','s1','s3'])s=bladeStep(s,spot);expect(s.effect).toBeNull();expect(s.pending).toBeNull();expect(s.moved).toBe(true);expect(s.active).toBe(0);expect(endTurn(s).active).toBe(1);});
- it('possession can finish after one step and charm can prevent it',()=>{const s=bladeStep(move(setup([],[],'Possession'),'s3'),'w');expect(finishBlade(s).effect).toBeNull();expect(s.pending).toBeNull();const defended=resolveTrap(move(setup(['Protective Charm'],[],'Possession'),'s3'),true);expect(defended.effect).toBeNull();expect(defended.players[0]?.spot).toBe('s3');});
+ it('possession highlights all legal destinations and moves in one selection',()=>{const s=move(setup([],[],'Possession'),'s3');expect(s.effect).toEqual({kind:'possession',player:0,attacker:1,remaining:4});expect(()=>endTurn(s)).toThrow();expect(possessionPaths(s).get('e')).toEqual(['win','s4','e']);expect(possessionPaths(s).has('s2')).toBe(false);expect(possessionPaths(s).has('s3')).toBe(false);expect(()=>choosePossessionDestination(s,'s2')).toThrow();const p=choosePossessionDestination(s,'e');expect(p.players[0]?.spot).toBe('e');expect(p.effect).toBeNull();expect(p.pending).toBeNull();expect(p.moved).toBe(true);expect(endTurn(p).active).toBe(1);});
+ it('possession resolves intermediate tokens and interrupts on traps',()=>{const s=move(setup([],[],'Possession'),'s3');const p=choosePossessionDestination({...s,tokens:[{spot:'win',token:token('Snare'),revealed:false}]},'e');expect(p.players[0]?.spot).toBe('win');expect(p.players[0]?.skip).toBe(true);expect(p.effect).toBeNull();});
+ it('charm prevents possession',()=>{const s=resolveTrap(move(setup(['Protective Charm'],[],'Possession'),'s3'),true);expect(s.effect).toBeNull();expect(s.players[0]?.spot).toBe('s3');});
  it('charm cancels a trap and is consumed',()=>{let s=move(setup(['Protective Charm'],[],'Snare'),'s3');expect(s.effect?.kind).toBe('trap');s=resolveTrap(s,true);expect(s.players[0]?.skip).toBe(false);expect(s.players[0]?.inventory).toHaveLength(0);});
  it('cave-in returns the mover',()=>{const s=move(setup([],[],'Cave-In'),'s3');expect(s.players[0]?.spot).toBe('s1');expect(s.moved).toBe(true);});
  it('curse drops a recoverable relic at a legal distance',()=>{let s=move(setup(['Relic'],[],'Relic Curse'),'s3');expect(s.effect?.kind).toBe('drop');const target=dropTargets(s,0)[0]!;s=dropObject(s,token('Relic').id,target);expect(s.players[0]?.inventory).toHaveLength(0);expect(s.tokens.find(t=>t.spot===target)?.revealed).toBe(true);});
