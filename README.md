@@ -13,6 +13,6 @@ npm test
 npm run build
 ```
 
-Phase 3 provides local player setup, one-step movement, occupied-spot blocking, turns and camera controls. Exploration and tokens are not yet implemented. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
+Phase 4 adds a shuffled room deck, rotation and placement, expanding map and cross-room movement. Tokens are not yet implemented. See [design](docs/GDD-v0.3.md), [technical design](docs/TECHNICAL-DESIGN.md), [decisions](docs/DECISIONS.md), and [roadmap](docs/ROADMAP.md).
 
 No backend, accounts, or networking. GitHub is source storage only. On Windows, download the repository ZIP, extract it, and double-click Launch-Cave-Hunters.cmd. The launcher installs missing local dependencies and starts the loopback-only game server.
