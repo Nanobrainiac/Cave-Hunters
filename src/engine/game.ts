@@ -4,14 +4,14 @@ import { RULES } from '../data/config';
 import { type RoomTemplate } from '../data/rooms';
 import { initialBoard, ROOM_DECK, shuffle, rotations, addRoom, openCell, expansionEnded, type Board } from './exploration';
 export type Player = { id:number; name:string; spot:string; inventory:readonly Token[]; skip:boolean };
-export type GameState = { players:readonly Player[]; active:number; turn:number; round:number; moved:boolean; first:number; board:Board; deck:readonly RoomTemplate[]; pending:RoomTemplate|null; discarded:number; expansionComplete:boolean; supply:readonly Token[]; tokens:readonly BoardToken[]; spent:readonly Token[]; seedCount:number; roll:number|null; encounter:Token|null; effect:Effect|null; notices:readonly Notice[]; skipped:boolean };
+export type GameState = { players:readonly Player[]; active:number; turn:number; round:number; moved:boolean; first:number; board:Board; deck:readonly RoomTemplate[]; pending:RoomTemplate|null; discarded:number; expansionComplete:boolean; supply:readonly Token[]; tokens:readonly BoardToken[]; spent:readonly Token[]; roll:number|null; encounter:Token|null; effect:Effect|null; notices:readonly Notice[]; skipped:boolean };
 export function newGame(names:readonly string[],first=0,random=Math.random):GameState {
  if(names.length<RULES.minPlayers||names.length>RULES.maxPlayers||!Number.isInteger(first)||first<0||first>=names.length)throw new Error('Invalid setup');
  const board=initialBoard();
- return {players:names.map((name,i)=>({id:i,name:name.trim()||'Player '+(i+1),spot:board.rooms[0]!.template.starts[i]!,inventory:[],skip:false})),active:first,first,turn:1,round:1,moved:false,board,deck:shuffle(ROOM_DECK,random),pending:null,discarded:0,expansionComplete:false,supply:newSupply(random),tokens:[],spent:[],seedCount:0,roll:null,encounter:null,effect:null,notices:[],skipped:false};
+ return {players:names.map((name,i)=>({id:i,name:name.trim()||'Player '+(i+1),spot:board.rooms[0]!.template.starts[i]!,inventory:[],skip:false})),active:first,first,turn:1,round:1,moved:false,board,deck:shuffle(ROOM_DECK,random),pending:null,discarded:0,expansionComplete:false,supply:newSupply(random),tokens:[],spent:[],roll:null,encounter:null,effect:null,notices:[],skipped:false};
 }
 export function legalMoves(state:GameState):string[]{
- if(state.moved||state.pending||state.seedCount||state.effect||state.skipped)return [];
+ if(state.moved||state.pending||state.effect||state.skipped)return [];
  const p=state.players[state.active]!;
  const occupied=new Set(state.players.map(p=>p.spot));
  return state.board.links.flatMap(([a,b])=>a===p.spot?[b]:b===p.spot?[a]:[]).filter(id=>!occupied.has(id));
@@ -30,7 +30,7 @@ export function move(state:GameState,target:string):GameState {
  return step({...state,moved:true,notices:[],encounter:null},state.active,target,true);
 }
 export function retryAvailable(state:GameState):boolean{
- return !state.moved&&!state.pending&&!state.seedCount&&!state.effect&&!state.skipped&&!state.expansionComplete&&!!state.deck.length&&!!openCell(state.board,state.players[state.active]!.spot);
+ return !state.moved&&!state.pending&&!state.effect&&!state.skipped&&!state.expansionComplete&&!!state.deck.length&&!!openCell(state.board,state.players[state.active]!.spot);
 }
 export function retry(state:GameState):GameState{
  if(!retryAvailable(state))throw new Error('Cannot retry');
@@ -39,20 +39,30 @@ export function retry(state:GameState):GameState{
 export function place(state:GameState,rotation:number,random=Math.random):GameState{
  if(!state.pending)throw new Error('No pending room');
  const board=addRoom(state.board,state.players[state.active]!.spot,state.pending,rotation);
- const roll=rollTokenDie(random); return scheduleSeeds({...state,board,pending:null,roll,expansionComplete:expansionEnded(board,state.deck)},roll);
+ const count=rollTokenDie(random);
+ return spawnTokens({...state,board,pending:null,expansionComplete:expansionEnded(board,state.deck)},count,random);
 }
-export function endTurn(state:GameState):GameState {
- if(state.pending||state.seedCount||state.effect)throw new Error('Finish placement first');
+export function endTurn(state:GameState,random=Math.random):GameState {
+ if(state.pending||state.effect)throw new Error('Finish placement first');
  if(!state.skipped&&!state.moved&&legalMoves(state).length)throw new Error('Move required');
  const active=(state.active+1)%state.players.length;
  const p=state.players[active]!,skipped=p.skip;
  const next=updatePlayer({...state,active,turn:state.turn+1,round:state.round+(active===state.first?1:0),moved:false,roll:null,encounter:null,notices:[],skipped},active,q=>({...q,skip:false}));
- return scheduleSeeds(next,next.expansionComplete?1:0);
+ return next.expansionComplete?spawnTokens(next,1,random):next;
 }
 
-export function tokenTargets(s:GameState):string[]{return s.seedCount?eligibleSpots(s.board,s.players.map(p=>p.spot),s.tokens):[];}
-function scheduleSeeds(s:GameState,count:number):GameState{return {...s,seedCount:Math.min(count,s.supply.length,eligibleSpots(s.board,s.players.map(p=>p.spot),s.tokens).length)};}
-export function seedToken(s:GameState,spot:string):GameState{if(!tokenTargets(s).includes(spot))throw new Error('Illegal token placement');const [token,...supply]=s.supply;if(!token)throw new Error('Empty supply');return scheduleSeeds({...s,supply,tokens:[...s.tokens,{spot,token,revealed:false}]},s.seedCount-1);}
+// Spawn concealed tokens on distinct, unoccupied spots across the entire explored board.
+function spawnTokens(s:GameState,count:number,random:()=>number):GameState{
+ const available=eligibleSpots(s.board,s.players.map(p=>p.spot),s.tokens);
+ const placed=Math.min(count,s.supply.length,available.length);
+ const tokens=[...s.tokens];
+ for(let i=0;i<placed;i++){
+  const index=Math.min(available.length-1,Math.floor(random()*available.length));
+  const [spot]=available.splice(index,1);
+  tokens.push({spot:spot!,token:s.supply[i]!,revealed:false});
+ }
+ return {...s,supply:s.supply.slice(placed),tokens,roll:placed};
+}
 
 function notice(s:GameState,player:number,token:Token,result:string):GameState{return {...s,notices:[...s.notices,{player,token,result}],encounter:token};}
 function finish(s:GameState,normal:boolean):GameState{return normal?discover({...s,effect:null},s.players[s.active]!.spot):{...s,effect:null};}
@@ -92,7 +102,7 @@ export function dropObject(s:GameState,itemId:string,spot:string):GameState{
  return finish(notice(next,e.player,item,'Dropped on the board; can be recovered.'),e.normal);
 }
 export function usableItems(s:GameState):Token[]{
- if(s.pending||s.seedCount||s.effect||s.skipped)return [];
+ if(s.pending||s.effect||s.skipped)return [];
  return s.players[s.active]!.inventory.filter(t=>t.name==='Lantern'?lanternTargets(s).length>0:t.name==='Rusty Blade'||t.name==="Thief's Hook"?rivals(s,t).length>0:false);
 }
 export function useItem(s:GameState,id:string,target:string|number,stolen?:string):GameState{
